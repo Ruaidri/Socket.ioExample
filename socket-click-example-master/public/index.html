@@ -1,0 +1,317 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Ball.io</title>
+	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+
+    <script src="/socket.io/socket.io.js"></script>   
+      
+    <script type="text/javascript">
+        
+        
+	$(document).ready(function() {
+		var canvas = document.getElementById("myCanvas");
+		var context = canvas.getContext("2d");
+		var canvasWidth = canvas.width;
+		var canvasHeight = canvas.height;
+		//initialisation of variables, create object(s) 
+		
+        // create a new player
+        player = new Ball(10);
+        ball2 = new Ball(10);
+        //store the x, y pos of all players
+        var players = [10];
+        var i=0;
+        var playerW = 50;
+		var playerH = 50;
+        var socket = io.connect();
+        onSocketConnected();
+        
+        
+        
+        
+        
+        var id;
+        
+        var angle1 = 25;
+        var angle2 = 47;
+        var collided=false;
+        var header = "Balls!!!";
+        var speed = 4;
+
+        
+        var vx = speed*Math.cos(angle1*Math.PI/180);
+        var vy = speed*Math.sin(angle1*Math.PI/180);
+        var vx2 =2;// speed*Math.cos(angle2*Math.PI/180);
+        var vy2 =2;// speed*Math.sin(angle2*Math.PI/180);
+        
+        var y = 200;
+        var x = 240;
+        
+        var x2 = 100;
+        var y2 = 240;
+        
+        var scaleX = 100;
+        var scaleY = -100;
+        var transformX = 320;
+        var transformY = 240;
+	       
+        var distance =0;
+        
+        var begX = canvasWidth/2;
+        var begY = canvasHeight/2;
+        
+        
+        
+    // create the player object    
+function Ball (radius, color) {
+  if (radius === undefined) { radius = 40; }
+  if (color === undefined) { color = "#ff0000"; }
+  this.x = 150;
+  this.y = 150;
+  this.radius = radius;
+  this.rotation = 0;
+  this.scaleX = 1;
+  this.scaleY = 1;
+  this.lineWidth = 1;
+}
+Ball.prototype.draw = function (context) {
+  context.save();
+  context.translate(this.x, this.y);
+  context.rotate(this.rotation);
+  context.scale(this.scaleX, this.scaleY);
+  
+  context.lineWidth = this.lineWidth;
+  context.fillStyle = this.color;
+  context.beginPath();
+  //x, y, radius, start_angle, end_angle, anti-clockwise
+  context.arc(0, 0, this.radius, 0, (Math.PI * 2), true);
+  context.closePath();
+  context.fill();
+  if (this.lineWidth > 0) {
+    context.stroke();
+  }
+  context.restore();
+};
+        
+    
+        
+        
+var setEventHandlers = function() {
+	// Socket connection successful
+	socket.on("connection", onSocketConnected);
+
+	// New player message received
+	socket.on("new player", onNewPlayer);
+    
+
+};
+  function onSocketConnected() {
+	console.log("Connected to socket server");
+    players.x = 150;
+      players.y = 150;
+	// Send local player data to the game server
+	socket.emit("new player", {x: player.x, y: player.y});
+      
+};      
+        
+        
+  
+        
+        socket.on('onNewPlayer', function(newPlayers){
+            //players = newPlayers;
+             console.log("New player connected");
+            
+            // Initialise the new player
+            var newPlayer = new Ball(10);
+
+            // Add new player to the remote players array
+            players[i] = newPlayer;
+            console.log("newP "+players[i].x + " " + i);
+            animate();
+            i++;
+            
+        });
+
+//        //update the position of just one player  playerUpdate
+//        socket.on('newPlayer', function(id,pos){
+//            players[id] = pos;
+//        });
+        
+        
+        // Player move message received
+	   socket.on("moving player", function(data){
+            console.log("moving player"+ data.y);
+           players.x = data.x;
+           players.y = data.y;
+           console.log("socket ID: "+socket.id);
+//           players.y += vy2;
+//           socket.emit('moved', {x : players.x, y: players.y});
+        });
+        
+        
+        
+        
+        
+        
+		//sets up animation loop
+		function animate () {
+            //max speed ensurer
+            if(vy2>5){vy2--;}
+            if(vx2>5){vx2--;}
+            if(vy>2){vy=1;}
+            if(vx>2){vx=1;}
+            
+		//clears the stage after every iteration of the loop
+			context.clearRect(0, 0, canvasWidth, canvasHeight);
+		//special animation function - accepts the callback function 'animate'
+			window.requestAnimationFrame(animate, canvas);
+		//movement code goes in here
+            
+            window.addEventListener('keydown', keyPress,true);
+            
+            socket.emit('PlayerUpdate', {id: players.id, x: players.x, y: players.y});
+            socket.on("PlayerUpdate", function(data){
+            console.log("moving player"+ data.id);
+            console.log("socket ID: "+socket.id);    
+            players[i].x = data.x;
+            players[i].y = data.y;
+        });
+            
+            
+            y += vy;
+            x += vx;
+            y2 += vy2;
+            x2 += vx2;
+    
+
+          //draw each player as a ball
+         for(var i=0; i<players.length;i++){
+             if(collided!=true){
+             context.beginPath();
+             //console.log("player Pos: " + players[i].x + "i " + i);
+             if(players[i] === socket.id){
+                 context.fillStyle = "red";
+             }else{
+                 // different colour for other players
+                context.fillStyle = "#12bafa";
+             }
+             
+				context.arc(players[i].x,players[i].y,30,0,Math.PI*2,true);
+                
+                context.closePath();
+                context.fill();    
+            }
+         }
+            context.beginPath();
+            context.arc(x,y,15,0,Math.PI*2,true);
+            context.fillStyle = "#954b90";
+            context.closePath();
+            context.fill();
+            
+            
+            // create ball not on server
+//            if(collided != true){
+//                context.beginPath();
+//                context.arc(x2,y2,30,0,Math.PI*2,true);
+//                context.fillStyle = "#12bafa";
+//                context.closePath();
+//                context.fill();    
+//            }
+
+            
+            
+            // edge detection
+            if (x < 10 || x > 990) vx = -vx;
+            if (y < 10 || y > 490) vy = -vy;
+            x += vx;
+            y += vy;
+
+//            if (players[0].x < 10 || players[0].x > 990) vx2 = -vx2;
+//            if (players[0].y < 10 || players[0].y > 490) vy2 = -vy2;
+//            players[0].x += vx2; 
+//            players[0].y += vy2;
+            
+            
+            
+            //Collided with ball
+            dist =  calcDistance(x, y, players[0].x, players[0].y); 
+
+            if(dist < (player.radius + (ball2.radius+20))) {
+                console.log("Collision Detected!");
+                collided=true;
+            }
+            if(collided){
+              context.fillStyle = "#d5292b";
+              context.font = "25px Bangers";
+              context.fillText("You've Been ball'd!", 200,200);
+              //socket.emit('lost', {x : 0, y: 0});       
+            }
+        };
+            
+        
+            // calculate distannce between balls
+            function calcDistance(x, y, x2, y2) {
+                var dx = x - x2;
+                var dy = y - y2;
+                var distance = Math.round(Math.sqrt(dx*dx + dy*dy));
+                //console.log(distance);
+                return distance;
+                
+            }
+        
+        
+//handle key presses for movement
+function keyPress(e){
+    switch (e.keyCode) {
+        case 38:  // Up arrow 
+           // if (players.y - 10 > 0){
+                players[0].y -= vy2;
+                //vy2=-2;
+                socket.emit('moved', {x : players[0].x, y: players[0].y});
+            //}
+            break;
+        case 40:  // Down arrow
+            //if (players.y + 10 < canvasHeight){
+                players[0].y += vy2;
+                //vy2=2;
+                socket.emit('moved', {x : players[0].x, y: players[0].y});
+            //}
+            break;
+        case 37:  // Left arrow
+            //if (players.x - vx2 > 0){
+                players[0].x -= vx2;
+                //vx2=-2;
+                socket.emit('moved', {x : players[0].x, y: players[0].y});
+            //}
+            break;
+        case 39:  // Right arrow
+           // if (players.x + vx2 < canvasWidth){
+                players[0].x += vx2;
+                //vx2=2;
+                socket.emit('moved', {x : players[0].x, y: players[0].y});
+
+           // }
+            break;
+    }
+    e.preventDefault();
+}
+//call it once to kick it off 
+//after that it recursively calls itself
+window.requestAnimationFrame(animate, canvas);
+});
+
+		</script>
+	</head>  
+ <body>
+	<header>
+	<h1>Balls</h1>
+	<h2>Avoid the little purple ball</h2>
+	</header>
+
+    <canvas id="myCanvas" width="1000" height="500"
+       style="border:1px solid #000000;">
+    </canvas>
+  </body>
+</html>

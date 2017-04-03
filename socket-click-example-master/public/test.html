@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>Socket.io Demo</title>
+      <meta charset="utf-8">
+		<link rel="stylesheet" href="styles.css">
+   </head>
+   <body>
+	 
+		 <script src="/socket.io/socket.io.js"></script>
+		 <script>
+             
+             
+			 var socket = io.connect();
+			 
+			 function buttonClicked(){
+			   socket.emit('clicked');
+                 var text =  document.getElementById('usermsg').value;
+               socket.emit('chat message', text);
+			 }
+			 
+			 //when we receive numClients, do this
+			 socket.on('buttonUpdate', function(data){
+				 document.getElementById("buttonCount").innerHTML = 'The button has been clicked ' + data + ' times.';
+                 
+			 });
+             
+             socket.on('chat', function(msg){
+                 var node = document.createElement("LI");                 // Create a <li> node
+                 var textnode = document.createTextNode(msg);         // Create a text node
+                 node.appendChild(textnode);                              // Append the text to <li>
+                 document.getElementById("chat").appendChild(node);
+             //document.getElementById("chat").appendChild(msg)
+             //document.getElementById("chat").innerHTML = + msg + "\n";
+             });
+             
+		</script>
+   </body>
+</html>
